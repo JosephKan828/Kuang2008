@@ -30,27 +30,78 @@ function coeff_matrix(kn::Float64;
                       mode::Symbol = :full)
 
     if mode === :full
-        # ---------- FULL 6×6 SYSTEM ----------
+        # ==================================================
+        # FULL 6×6 LINEAR SYSTEM
+        # ==================================================
+        
+        # --------------------------------------------------
+        # 1. Derived nondimensional constants
+        # --------------------------------------------------
+        ϵ  = param.ϵ
+        rq = param.rq
+        r0 = param.r0
+        τL = param.τL
+        f  = param.f
+        
+        c1 = param.c1
+        c2 = param.c2
 
-        # Precompute auxiliary constants
-        A = 1.0 - 2.0*param.f + (param.b2 - param.b1)/param.F
-        B = 1.0 + (param.b2 + param.b1)/param.F - A*param.r0
-
-        α = -param.d1*(-1.5*param.rq + param.RT11) - param.d2*( 1.5*param.rq + param.RT12)
-        β = -param.d1*param.RT21                      - param.d2*param.RT22
-        γ = -param.d1*( param.rq + param.Rq1)        - param.d2*(-param.rq + param.Rq2)
-        δ = -param.d1*( 1.0 + param.r0)              - param.d2*( 1.0 - param.r0)
-
+        A = 1.0 - 2.0*f + (param.b2 - param.b1)/param.F
+        B = 1.0 + (param.b2 + param.b1)/param.F - A*r0
+        
+        invBτ = 1.0 / (B * τL)
+        
+        # --------------------------------------------------
+        # 2. Radiative tendency aggregation (LW + SW)
+        # --------------------------------------------------
+        Rq1  = param.Rq1_LW  + param.Rq1_SW
+        Rq2  = param.Rq2_LW  + param.Rq2_SW
+        
+        RT11 = param.RT11_LW + param.RT11_SW
+        RT12 = param.RT12_LW + param.RT12_SW
+        RT21 = param.RT21_LW + param.RT21_SW
+        RT22 = param.RT22_LW + param.RT22_SW
+        
+        Rw11 = param.Rw11_LW + param.Rw11_SW
+        Rw12 = param.Rw12_LW + param.Rw12_SW
+        Rw21 = param.Rw21_LW + param.Rw21_SW
+        Rw22 = param.Rw22_LW + param.Rw22_SW
+        
+        # --------------------------------------------------
+        # 3. Moisture–dynamics coupling coefficients
+        # --------------------------------------------------
+        d1, d2 = param.d1, param.d2
+        
+        α = param.a1 - d1*Rw11 - d2*Rw12
+        β = param.a2 - d1*Rw21 - d2*Rw22
+        
+        γ = -d1*(RT11 - 1.5*rq) - d2*(RT12 + 1.5*rq)
+        δ = -d1*RT21 - d2*RT22
+        
+        ζ = -d1*(Rq1 + rq) - d2*(Rq2 - rq)
+        η = -d1*(1.0 + r0) - d2*(1.0 - r0)
+        
+        # --------------------------------------------------
+        # 4. Linear operator assembly
+        # --------------------------------------------------
         mat = ComplexF64[
-            -param.ϵ                  0.0                     (kn*param.c1)^2              0.0                          0.0                      0.0;
-             0.0                   -param.ϵ                  0.0                     (kn*param.c2)^2                  0.0                      0.0;
-            -1.0                     0.0                   -1.5*param.rq + param.RT11   param.RT21                    param.rq + param.Rq1      1.0 + param.r0;
-             0.0                    -1.0                    1.5*param.rq + param.RT12   param.RT22                   -param.rq + param.Rq2      1.0 - param.r0;
-             param.a1               param.a2                α                           β                            γ                          δ;
-             param.f /B/param.τL   (1-param.f)/B/param.τL  -1.5*A*param.rq/B/param.τL   0.0                          A*param.rq/B/param.τL    -1.0/param.τL
+            # (T₁, T₂)
+            -ϵ        0.0       (c1*kn)^2                 0.0        0.0              0.0;
+            0.0      -ϵ          0.0        (c2*kn)^2                 0.0              0.0;
+        
+            # (w₁, w₂)
+            Rw11-1.0  Rw21   RT11 - 1.5*rq   RT21   rq + Rq1    1.0 + r0;
+            Rw12      Rw22-1.0 RT12 + 1.5*rq RT22  -rq + Rq2   1.0 - r0;
+        
+            # (q)
+            α         β         γ            δ         ζ                 η;
+        
+            # (L)
+            f*invBτ   (1-f)*invBτ  -1.5*A*rq*invBτ   0.0   A*rq*invBτ   -1.0/τL
         ]
-
+        
         return mat
+
 
     elseif mode === :oneway
         # ---------- 4×4 REDUCED “ONE-WAY” SYSTEM ----------
