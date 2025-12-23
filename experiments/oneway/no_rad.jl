@@ -138,7 +138,7 @@ p1 = plot(
     ylabel = "Growth Rate (1/day)",
     title  = "Growth Rate of the Most Unstable Mode",
     xlim   = (0, 30),
-    ylim   = (0, 0.13),
+    # ylim   = (0, 0.13),
     xticks = 0:5:30,
     yticks = 0:0.02:0.12,
 )

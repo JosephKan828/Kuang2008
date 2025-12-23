@@ -106,37 +106,21 @@ function coeff_matrix(kn::Float64;
     elseif mode === :oneway
         # ---------- 4×4 REDUCED “ONE-WAY” SYSTEM ----------
 
-        γ0 = (1.0 - param.r0) / (1.0 + param.r0)
-        γq = (2.0 * param.rq) / (1.0 + param.r0)
+        γ0 = (1-param.r0)/(1+param.r0)
+        γq = 2*param.rq/(1+param.r0)
 
-        # denominator D = b1 + b2 * γ0
-        D = param.b1 + param.b2 * γ0
+        D  = param.τL*(param.b1+param.b2*γ0) 
 
-        # helper coefficients from d/dt (f T1 + (1-f) T2)
-        α0 = param.f * (-1im * kn * param.c1 - param.ϵ) +
-             1.5 * γq * (1.0 - param.f)
-
-        β0 = (1.0 - param.f) * (-1im * kn * param.c2 - param.ϵ)
-
-        δ0 = -(1.0 - param.f) * γq
-
-        # coefficients in J1_eq = coeff_T1*T1 + coeff_T2*T2 + coeff_q*q + coeff_J1*J1
-        coeff_T1 = (-1.5 * param.b2 * γq - param.F * α0) / D
-        coeff_T2 = (-param.F * β0) / D
-        coeff_q  = ( param.b2 * γq - param.F * δ0) / D
-        coeff_J1 = (-param.F * param.f) / D
-
-        # bottom row of the matrix: dJ1/dt = α*T1 + β*T2 + γ*q + δ*J1
-        α = coeff_T1 / param.τL
-        β = coeff_T2 / param.τL
-        γ = coeff_q  / param.τL
-        δ = (coeff_J1 - 1.0) / param.τL
+        α = (-1.5*param.b2*γq + param.F*param.f*(param.c1*kn+param.ϵ) - 1.5*γq*param.F*(1-param.f))
+        β = param.F*(1-param.f)*(param.c2*kn+param.ϵ)
+        γ = param.b2*γq + param.F*(1-param.f)*γq
+        δ = -param.F*param.f - param.F*(1-param.f)*γ0 - 1/(param.b1+param.b2*γ0)
 
         mat = ComplexF64[
-            -1im * kn * param.c1 - param.ϵ      0.0                             0.0            1.0;
-             1.5 * γq                           -1im * kn * param.c2 - param.ϵ  -γq           0.0;
-             1.5 * param.m2 * γq                0.0                             -param.m2*γq   param.m1;
-             α                                  β                               γ              δ
+            -1im*kn*param.c1 - param.ϵ      0.0                             0.0            1.0;
+            1.5*γq                   -1im*kn*param.c2 - param.ϵ  -γq           γ0;
+            1.5*param.m2*γq                0.0                             -param.m2*γq   param.m1+param.m2*γ0;
+            α/D                                  β/D                               γ/D              δ/D
         ]
 
         return mat

@@ -108,16 +108,16 @@ function default_params(exptype::Union{String,Symbol} = "conv_only",
         return ModelParams(
             1.4, 0.0, 1.0, 2.0, 1.0, 0.5, 1.1, -1.0, 0.3, 1.0,
             1.0, 0.7, 4.0, 0.5, 1/12, 0.1,
-            -0.021   * rad_scaling, 6.04e-5   * rad_scaling,
+            -0.021   * rad_scaling, 5.90e-5   * rad_scaling,
             -0.0032  * rad_scaling, -0.00017  * rad_scaling,
-            -0.0046  * rad_scaling, 8.78e-5   * rad_scaling,
-            -0.038   * rad_scaling, 5.98e-5   * rad_scaling,
-            4.18     * rad_scaling, 2.52      * rad_scaling,
-            11.08    * rad_scaling, -5.32     * rad_scaling,
-            3416.61  * rad_scaling, 2269.21   * rad_scaling,
-            7331.88  * rad_scaling, -3748.63  * rad_scaling,
-            -1395.51 * rad_scaling, -162.58   * rad_scaling,
-            -2577.28 * rad_scaling, 1627.12   * rad_scaling
+            -0.0053  * rad_scaling, 7.83e-5   * rad_scaling,
+            -0.037   * rad_scaling, 7.14e-5   * rad_scaling,
+            5.55     * rad_scaling, 1.76      * rad_scaling,
+            9.12     * rad_scaling, -4.25     * rad_scaling,
+            3598.79  * rad_scaling, 2113.36   * rad_scaling,
+            7072.13  * rad_scaling, -3526.41  * rad_scaling,
+            -1453.08 * rad_scaling, -108.87   * rad_scaling,
+            -2495.18 * rad_scaling, 1550.54   * rad_scaling
         )
 
     # elseif exptype_sym === :conv_radiation_moist
