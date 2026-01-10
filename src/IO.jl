@@ -1,7 +1,7 @@
 module IO
 
 using HDF5
-export load_background, load_vertical_modes, load_domain, load_wavenumbers, save_state
+export load_background, load_vertical_modes, load_domain, load_wavenumbers, save_state, save_optrs
 
 function load_background(path::String)
     h5open(path, "r") do f
@@ -38,6 +38,7 @@ function load_wavenumbers(path::String)
 end
 
 function save_state(path::String, state, t, k, varnames)
+    println("Saving state to ", path)
     h5open(path, "w") do f
         write(f, "state", state)
         write(f, "time", t)
@@ -46,6 +47,15 @@ function save_state(path::String, state, t, k, varnames)
 
         attributes(f["time"])["units"] = "day"
         attributes(f["wavenumber"])["units"] = "None"
+    end
+end
+
+function save_optrs( path::String, optrs, k )
+    println( "Saving operators to ", path )
+
+    h5open( path, "w" ) do f
+        write( f, "operators", optrs )
+        write( f, "wavenumber", k )
     end
 end
 

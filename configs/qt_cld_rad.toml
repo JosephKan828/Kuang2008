@@ -1,0 +1,25 @@
+[case]
+name = "qt_cld_rad"
+description = "moisture, temperature, and cloud case"
+
+[compute]
+blas_threads = 12
+
+[paths]
+root = "/home/b11209013/2025_Research/Kuang2008/"
+work = "/work/b11209013/2025_Research/Kuang2008/"
+data_dir = "data/"
+output_dir = "output/"
+figures_dir = "figures/"
+
+[data_files]
+background = "background.h5"
+vertical_mode = "vertical_mode.h5"
+domain = "domain.h5"
+inv_mat = "inv_mat.h5"
+
+[model]
+nv = 6
+state_names = ["w1", "w2", "T1", "T2", "q", "L"]
+params_preset = "qt_cld_rad"
+mode = "full"

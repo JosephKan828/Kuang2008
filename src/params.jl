@@ -1,5 +1,7 @@
 module Params
 
+using HDF5
+
 export ModelParams, default_params
 
 # ============================================
@@ -88,12 +90,36 @@ Arguments
 - `rad_scaling`:
     Scalar factor applied to all radiative feedback coefficients.
 """
-function default_params(exptype::Union{String,Symbol} = "conv_only",
+function default_params(exptype::Union{String,Symbol} = "no_rad",
                         rad_scaling::Float64 = 0.0)
+
+    qt_file :: String = "/work/b11209013/2025_Research/MSI/Rad_Stuff/qt_coeff.h5"
+    w_file  :: String = "/work/b11209013/2025_Research/MSI/Rad_Stuff/w_coeff.h5"
+
+    RT1_LW, RT1_SW, RT2_LW, RT2_SW, Rq_LW, Rq_SW = h5open(qt_file, "r") do qt_f
+        return (
+        read(qt_f, "RT1_lw"),
+        read(qt_f, "RT1_sw"),
+        read(qt_f, "RT2_lw"),
+        read(qt_f, "RT2_sw"),
+        read(qt_f, "Rq_lw"),
+        read(qt_f, "Rq_sw")
+       )
+    end
+    
+    Rw1_LW, Rw1_SW, Rw2_LW, Rw2_SW = h5open(w_file, "r") do w_f
+        return (
+        read(w_f, "Rw1_lw"),
+        read(w_f, "Rw1_sw"),
+        read(w_f, "Rw2_lw"),
+        read(w_f, "Rw2_sw")
+       )
+    end
+ 
 
     exptype_sym = exptype isa String ? Symbol(exptype) : exptype
 
-    if exptype_sym === :conv_only
+    if exptype_sym === :no_rad
         # --- Convection only ---
         return ModelParams(
             1.4, 0.0, 1.0, 2.0, 1.0, 0.5, 1.1, -1.0, 0.3, 1.0,
@@ -103,31 +129,57 @@ function default_params(exptype::Union{String,Symbol} = "conv_only",
             0.0, 0.0
         )
 
-    elseif exptype_sym === :conv_radiation_full
+    elseif exptype_sym === :qt_cld_rad
         # --- Convection + (moisture + temperature) radiation ---
         return ModelParams(
             1.4, 0.0, 1.0, 2.0, 1.0, 0.5, 1.1, -1.0, 0.3, 1.0,
             1.0, 0.7, 4.0, 0.5, 1/12, 0.1,
-            -0.021   * rad_scaling, 5.90e-5   * rad_scaling,
-            -0.0032  * rad_scaling, -0.00017  * rad_scaling,
-            -0.0053  * rad_scaling, 7.83e-5   * rad_scaling,
-            -0.037   * rad_scaling, 7.14e-5   * rad_scaling,
-            5.55     * rad_scaling, 1.76      * rad_scaling,
-            9.12     * rad_scaling, -4.25     * rad_scaling,
-            3598.79  * rad_scaling, 2113.36   * rad_scaling,
-            7072.13  * rad_scaling, -3526.41  * rad_scaling,
-            -1453.08 * rad_scaling, -108.87   * rad_scaling,
-            -2495.18 * rad_scaling, 1550.54   * rad_scaling
+            RT1_LW[1] * rad_scaling, RT1_SW[1] * rad_scaling,
+            RT1_LW[2] * rad_scaling, RT1_SW[2] * rad_scaling,
+            RT2_LW[1] * rad_scaling, RT2_SW[1] * rad_scaling,
+            RT2_LW[2] * rad_scaling, RT2_SW[2] * rad_scaling,
+            Rq_LW[1]  * rad_scaling, Rq_SW[1]  * rad_scaling,
+            Rq_LW[2]  * rad_scaling, Rq_SW[2]  * rad_scaling,
+            Rw1_LW[1] * rad_scaling, Rw1_SW[1] * rad_scaling,
+            Rw1_LW[2] * rad_scaling, Rw1_SW[2] * rad_scaling,
+            Rw2_LW[1] * rad_scaling, Rw2_SW[1] * rad_scaling,
+            Rw2_LW[2] * rad_scaling, Rw2_SW[2] * rad_scaling
         )
 
-    # elseif exptype_sym === :conv_radiation_moist
-    #     # --- Convection + (moisture-only) radiation ---
-    #     return ModelParams(
-    #         1.4, 0.0, 1.0, 2.0, 1.0, 0.5, 1.1, -1.0, 0.3, 1.0,
-    #         1.0, 0.7, 4.0, 0.5, 1/12, 0.1,
-    #         0.0, 0.0, 0.0, 0.0,
-    #         5.61 * rad_scaling, 3.36 * rad_scaling
-    #     )
+    elseif exptype_sym === :qt_rad
+        # --- Convection + (moisture + temperature) radiation ---
+        return ModelParams(
+            1.4, 0.0, 1.0, 2.0, 1.0, 0.5, 1.1, -1.0, 0.3, 1.0,
+            1.0, 0.7, 4.0, 0.5, 1/12, 0.1,
+            RT1_LW[1] * rad_scaling, RT1_SW[1] * rad_scaling,
+            RT1_LW[2] * rad_scaling, RT1_SW[2] * rad_scaling,
+            RT2_LW[1] * rad_scaling, RT2_SW[1] * rad_scaling,
+            RT2_LW[2] * rad_scaling, RT2_SW[2] * rad_scaling,
+            Rq_LW[1]  * rad_scaling, Rq_SW[1]  * rad_scaling,
+            Rq_LW[2]  * rad_scaling, Rq_SW[2]  * rad_scaling,
+            0.0 * rad_scaling      , 0.0 * rad_scaling,
+            0.0 * rad_scaling      , 0.0 * rad_scaling,
+            0.0 * rad_scaling      , 0.0 * rad_scaling,
+            0.0 * rad_scaling      , 0.0 * rad_scaling
+        )
+    
+    elseif exptype_sym === :cld_rad
+        # --- Convection + (moisture + temperature) radiation ---
+        return ModelParams(
+            1.4, 0.0, 1.0, 2.0, 1.0, 0.5, 1.1, -1.0, 0.3, 1.0,
+            1.0, 0.7, 4.0, 0.5, 1/12, 0.1,
+            0.0 * rad_scaling      , 0.0 * rad_scaling,
+            0.0 * rad_scaling      , 0.0 * rad_scaling,
+            0.0 * rad_scaling      , 0.0 * rad_scaling,
+            0.0 * rad_scaling      , 0.0 * rad_scaling,
+            0.0 * rad_scaling      , 0.0 * rad_scaling,
+            0.0 * rad_scaling      , 0.0 * rad_scaling,
+            Rw1_LW[1] * rad_scaling, Rw1_SW[1] * rad_scaling,
+            Rw1_LW[2] * rad_scaling, Rw1_SW[2] * rad_scaling,
+            Rw2_LW[1] * rad_scaling, Rw2_SW[1] * rad_scaling,
+            Rw2_LW[2] * rad_scaling, Rw2_SW[2] * rad_scaling
+        )
+
 
     else
         error("Invalid experiment type: $exptype. " *

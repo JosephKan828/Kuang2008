@@ -14,7 +14,7 @@ using .Diagnostics
 
 export ModelParams, default_params, coeff_matrix
 export integration!, run_full_model!
-export load_background, load_vertical_modes, load_domain, load_wavenumbers, save_state
+export load_background, load_vertical_modes, load_domain, load_wavenumbers, save_state, save_optrs
 
 # New exports for diagnostics
 export diagnose_growth_phase, save_growth_phase, run_diagnostics

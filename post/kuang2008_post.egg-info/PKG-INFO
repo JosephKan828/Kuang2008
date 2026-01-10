@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: kuang2008-post
+Version: 0.1.0
+Summary: Post-processing tools for Kuang2008 Julia model outputs
+Requires-Python: >=3.10
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: h5py
+Requires-Dist: xarray
+Requires-Dist: pandas
+Requires-Dist: scipy

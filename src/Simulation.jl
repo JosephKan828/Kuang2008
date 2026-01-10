@@ -49,17 +49,4 @@ function integration!(state::Array{ComplexF64,3},
 
     return state
 end
-
-"""
-Convenience wrapper for “full” model runs.
-"""
-function run_full_model!(state::Array{ComplexF64,3},
-                         t::AbstractVector{<:Real},
-                         k::AbstractVector{<:Real},
-                         init::AbstractMatrix{ComplexF64};
-                         params::ModelParams,
-                         mode::Symbol = :full)
-    integration!(state, t, k, init; params=params, mode=mode)
 end
-
-end # module

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kuang2008-post"
+version = "0.1.0"
+description = "Post-processing tools for Kuang2008 Julia model outputs"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "matplotlib",
+  "h5py",
+  # optional but commonly useful:
+  "xarray",
+  "pandas",
+  "scipy",
+]
+
+[tool.setuptools]
+packages = ["kuang_post"]
+
