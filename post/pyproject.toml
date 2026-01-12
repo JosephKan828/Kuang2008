@@ -18,5 +18,8 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["kuang_post"]
+packages = ["kuang_post", "lib"]
 
+# Fix: Ensure this is valid TOML syntax
+[tool.setuptools.package-dir]
+"" = "."

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")  # Use non-interactive backend
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 

@@ -4,7 +4,7 @@ using LinearAlgebra
 using Base.Threads
 using ..LinearModel: ModelParams, coeff_matrix
 
-export integration!, run_full_model!
+export integration!
 
 """
     integration!(state, t, k, init; params, mode=:full)
@@ -31,18 +31,30 @@ function integration!(state::Array{ComplexF64,3},
     @assert Nk == length(k)
 
     # Precompute exponentials for each k
-    Φs = Vector{Matrix{ComplexF64}}(undef, Nk)
-    for j in eachindex(k)
+    # Φs = Vector{Matrix{ComplexF64}}(undef, Nk)
+    Φs = [Matrix{ComplexF64}(undef, Nv, Nv) for _ in 1:Nk]
+
+    @threads for j in 1:Nk
         L = coeff_matrix(Float64(k[j]); param=params, mode=mode)
-        Φs[j] = exp(Δt * L)
+        Φs[j] .= exp(Δt * L)
     end
 
-    @threads for j in eachindex(k)
+    # Integrate
+    workspaces = [Vector{ComplexF64}(undef, Nv) for _ in 1:nthreads()]
+
+    @threads for j in 1:Nk
+        tid = threadid()
+        tmp = workspaces[tid]
+
         Φ = Φs[j]
+
         @views state[1, :, j] .= init[:, j]
-        tmp = similar(state, ComplexF64, Nv)
+        
         for n in 2:Nt
-            @views mul!(tmp, Φ, state[n-1, :, j])
+            prev_slice = view(state, n-1, :, j)
+
+            mul!(tmp, Φ, prev_slice)
+
             @views state[n, :, j] .= tmp
         end
     end

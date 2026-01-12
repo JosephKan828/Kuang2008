@@ -10,12 +10,7 @@ using Plots
 
 import TOML
 
-function params_from_case(case::AbstractString, rad_scaling::Float64)
-    """
-    Load case name and find corresponding parameters with params.jl
-    """
-    return default_params(case, rad_scaling)
-end
+const PROJECT_ROOT = "/home/b11209013/2025_Research/Kuang2008/"
 
 function load_case_config(root::AbstractString, case::AbstractString)
 
@@ -30,23 +25,6 @@ function load_case_config(root::AbstractString, case::AbstractString)
     return nothing
 end
 
-"""
-Get a value from TOML Dict with nested keys, else default.
-Example: get_cfg(cfg, ("compute","blas_threads"), 12)
-"""
-function get_cfg(cfg, keys::Tuple, default)
-    cfg === nothing && return default
-    d = cfg
-    for k in keys[1:end-1]
-        if !(haskey(d, k))
-            return default
-        end
-        d = d[k]
-    end
-    lastk = keys[end]
-    return haskey(d, lastk) ? d[lastk] : default
-end
-
 # ============================================
 # Main
 # ============================================
@@ -55,95 +33,81 @@ function main()
     # -------------------------------------------
     # Get case information
     # -------------------------------------------
-    case = length(ARGS) >= 1 ? ARGS[1] : "no_rad" # refer to specific case
-    rad_scaling = length(ARGS) >= 2 ? ARGS[2] : "0.001"
-    println( ARGS )
+    @assert length(ARGS) <= 3 "Usage: julia run_case.jl [case] [rad_scaling]"
 
-    println( "rad_scaling = ", rad_scaling )
+    case            = ARGS[1] # refer to specific case
+    rad_scaling_str = ARGS[2]
+    rad_scaling     = parse(Float64, rad_scaling_str)  # radiation scaling factor
+
     root = abspath(joinpath(@__DIR__, ".."))      # root directory
 
     # -------------------------------------------
     # Configuration
     # -------------------------------------------
-    cfg = load_case_config(root, case)
+    cfg = load_case_config(PROJECT_ROOT, case)
 
-    if cfg === nothing
-        println("No configuration for case = ", case)
-        return
-    end
+    @assert cfg !== nothing "No configuration for case = ", case
 
-    # Specify directories
-    ROOT     = "/home/b11209013/2025_Research/Kuang2008/"
-    WORKPATH = "/work/b11209013/2025_Research/Kuang2008/"
-    DATAPATH = joinpath(ROOT, get_cfg(cfg, ("paths","data_dir"), "data"))
-    OUTPATH  = joinpath(WORKPATH, get_cfg(cfg, ("paths","output_dir"), "output"))
-    FIGPATH  = joinpath(ROOT, get_cfg(cfg, ("paths","figures_dir"), "figures"))
+    data_cfg = cfg["data_files"]
+    path_cfg = cfg["paths"]
+    comp_cfg = cfg["compute"]
+    mod_cfg  = cfg["model"]    
+
+    DATAPATH = joinpath(PROJECT_ROOT, path_cfg["data_dir"])
 
     # -------------------------------------------
     # Compute setting
     # -------------------------------------------
-    blas_threads = Int(get_cfg(cfg, ("compute","blas_threads"), 12))
-    BLAS.set_num_threads(blas_threads)
+    blas_threads = Int(comp_cfg["blas_threads"])
+    BLAS.set_num_threads(1)
     
     # -------------------------------------------
     # Load data
     # -------------------------------------------
-    background_file     = joinpath(DATAPATH, get_cfg(cfg, ("data_files","background"), "background.h5"))
-    vertical_mode_file  = joinpath(DATAPATH, get_cfg(cfg, ("data_files","vertical_mode"), "vertical_mode.h5"))
-    domain_file         = joinpath(DATAPATH, get_cfg(cfg, ("data_files","domain"), "domain.h5"))
-    invmat_file         = joinpath(DATAPATH, get_cfg(cfg, ("data_files","inv_mat"), "inv_mat.h5"))
 
-    ρ0, p0, T0, z_bg = load_background(background_file)
-    G1, G2           = load_vertical_modes(vertical_mode_file)
-    x, z, t          = load_domain(domain_file)
-    k                = load_wavenumbers(invmat_file)
+    ρ0, p0, T0, z_bg = load_background(joinpath(DATAPATH, data_cfg["background"]))
+    G1, G2           = load_vertical_modes(joinpath(DATAPATH, data_cfg["vertical_mode"]))
+    x, z, t          = load_domain(joinpath(DATAPATH, data_cfg["domain"]))
+    k                = load_wavenumbers(joinpath(DATAPATH, data_cfg["inv_mat"]))
 
-    Nt = length(t)
-    Nk = length(k)
-    Nv = Int(get_cfg(cfg, ("model","nv"), 6))
-    state_names = get_cfg(cfg, ("model","state_names"), ["w1","w2","T1","T2","q","L"])
+    Nt, Nv, Nk = length(t), Int(mod_cfg["nv"]), length(k)
+
+    state_names = mod_cfg["state_names"]
 
     println("Finish loading data.")
 
     # -------------------------------------------
-    # Parameters
-    # -------------------------------------------
-    rad_scaling_float = parse(Float64, rad_scaling)
-    params = params_from_case(case, rad_scaling_float)
-
-    # -------------------------------------------
     # Initial conditions
     # -------------------------------------------
-    init = Array{ComplexF64}(undef, Nv, Nk)
+    init = zeros(ComplexF64, Nv, Nk)
 
-    scales = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    scales = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # scale of initial field
 
     for i in 1:Nv
-        init[i, :] = randn(ComplexF64, Nk).*(1 + 1im) * scales[i]
+        init[i, :] .= randn(ComplexF64, Nk) .* scales[i]
     end
 
     state_vec = zeros(ComplexF64, Nt, Nv, Nk)
+    params = default_params(case, rad_scaling) # setup parameter set
 
     println("Finish initial conditions.")
 
     # -------------------------------------------
     # Run full model
     # -------------------------------------------
-    integration!(state_vec, t, k, init; params=params, mode=:full)
+    println("Running model for $case...")
+
+    @time integration!(state_vec, t, k, init; params=params, mode=:full)
 
     println("Finish running full model.")
 
-
-    if case == "no_rad"
-        outdir = joinpath(ROOT, "output", case); mkpath(outdir)
-    else
-        outdir = joinpath(ROOT, "output", case, "rad_scaling=$(rad_scaling)"); mkpath(outdir)
-    end
+    subfolder = case == "no_rad" ? case : joinpath(case, "rad_scaling=$rad_scaling_str")
+    outdir = joinpath(PROJECT_ROOT, "output", subfolder)
+    mkpath(outdir)
 
     println("Saving data to ", outdir)
 
-    save_state(joinpath(outdir, "state.h5"), state_vec, t, k,
-            ["w1","w2","T1","T2","q","L"])
+    save_state(joinpath(outdir, "state.h5"), state_vec, t, k, state_names)
 
     # -------------------------------------------
     # Save linear operator

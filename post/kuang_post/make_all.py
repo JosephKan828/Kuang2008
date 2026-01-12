@@ -138,7 +138,7 @@ def main() -> None:
     J1: np.ndarray = ( L + U )[ None, :, : ]
     J2: np.ndarray = ( L - U )[ None, :, : ]
 
-    state_J: np.ndarray = np.concatenate( [ state, J1, J2 ], axis=0 ).astype( np.complex64, copy=False )
+    state_J: np.ndarray = np.concatenate( [ state[:4], J1, J2 ], axis=0 ).astype( np.complex64, copy=False )
 
     # design basis
     levels   : np.ndarray = np.linspace( 0.0, 14000.0, 141, dtype=np.float32 )
@@ -165,34 +165,9 @@ def main() -> None:
 
     # Reconstruct
     FourierBasis : np.ndarray = inv_mat_lim[ :, kidx ][ None, :, None ]
-    pcs          : np.ndarray = state[ :, kidx, : ][ :, None, : ]
+    pcs          : np.ndarray = state_J[ :, kidx, : ][ :, None, : ]
 
     profile      : np.ndarray = np.einsum( "vz,vxt->vzxt", basis_v, FourierBasis*pcs, optimize=True )
-
-    # w_prof : list[np.ndarray] = Reconstruct.reconstruct(
-    #     kidx,
-    #     state[ :2, :, :],
-    #     np.array( [ G1, G2 ] ),
-    #     inv_mat_lim
-    # )
-    # print( "Finish computing w" )
-
-    # T_prof : list[np.ndarray] = Reconstruct.reconstruct(
-    #     kidx,
-    #     state[ 2:4, :, : ],
-    #     np.array( [ G1, G2 ] )*0.0033,
-    #     inv_mat_lim
-    # )
-
-    # print( "Finish computing T" )
-
-    # J_prof : list[np.ndarray] = Reconstruct.reconstruct(
-    #     kidx,
-    #     np.array( [ J1, J2 ] ),
-    #     np.array( [ G1, G2 ] ),
-    #     inv_mat_lim
-    # )
-    # print( "Finish computing J" )
 
     print( "Finish reconstructing profiles" )
 
@@ -207,7 +182,7 @@ def main() -> None:
 
     # Design levels
 
-    Tmax: np.float64 = np.nanmax( np.abs( T ) ) // 0.005 * 0.005
+    Tmax: np.float64 = np.nanmax( np.abs( T ) ) // 0.0005 * 0.0005
     wmax: np.float64 = np.nanmax( np.abs( w ) ) // 0.01 * 0.01
     Jmax: np.float64 = np.nanmax( np.abs( J ) ) // 1
 
