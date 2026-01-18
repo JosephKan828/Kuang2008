@@ -81,14 +81,18 @@ function main()
     # -------------------------------------------
     init = zeros(ComplexF64, Nv, Nk)
 
-    scales = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # scale of initial field
+    scales = [10.0, 10.0, 10.0, 10.0, 0.1, 10] # scale of initial field
 
     for i in 1:Nv
-        init[i, :] .= randn(ComplexF64, Nk) .* scales[i]
+        init[i, :] .= (2.0.*rand(ComplexF64, Nk) .- 1.0) .* (1.0 + 1.0im) .* scales[i]
     end
+
+    println( "Initial conditions for the lowest wavenumber: ", init[1:end, 1] )
 
     state_vec = zeros(ComplexF64, Nt, Nv, Nk)
     params = default_params(case, rad_scaling) # setup parameter set
+
+    dump( params ) # show parameters in this structure field
 
     println("Finish initial conditions.")
 
