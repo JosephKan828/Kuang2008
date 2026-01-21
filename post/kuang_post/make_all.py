@@ -92,7 +92,7 @@ def main() -> None:
 
     # Load inverse matrix
     with h5py.File(
-    "/home/b11209013/2025_Research/Kuang2008/data/inv_mat.h5",
+    "/home/b11209013/Kuang2008/data/inv_mat.h5",
         "r"
     ) as f:
         x      : np.ndarray = f.get( "x" )[ ... ] # Shape: ( Nx, )

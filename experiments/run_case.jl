@@ -11,6 +11,7 @@ using Plots
 import TOML
 
 const PROJECT_ROOT = "/home/b11209013/2025_Research/Kuang2008/"
+const WORK_ROOT    = "/work/b11209013/Kuang2008/"
 
 function load_case_config(root::AbstractString, case::AbstractString)
 
@@ -87,12 +88,10 @@ function main()
         init[i, :] .= (2.0.*rand(ComplexF64, Nk) .- 1.0) .* (1.0 + 1.0im) .* scales[i]
     end
 
-    println( "Initial conditions for the lowest wavenumber: ", init[1:end, 1] )
-
     state_vec = zeros(ComplexF64, Nt, Nv, Nk)
     params = default_params(case, rad_scaling) # setup parameter set
 
-    dump( params ) # show parameters in this structure field
+    # dump( params ) # show parameters in this structure field
 
     println("Finish initial conditions.")
 
@@ -106,7 +105,7 @@ function main()
     println("Finish running full model.")
 
     subfolder = case == "no_rad" ? case : joinpath(case, "rad_scaling=$rad_scaling_str")
-    outdir = joinpath(PROJECT_ROOT, "output", subfolder)
+    outdir = joinpath(WORK_ROOT, "output", subfolder)
     mkpath(outdir)
 
     println("Saving data to ", outdir)

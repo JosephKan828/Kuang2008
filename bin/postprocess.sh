@@ -20,18 +20,19 @@ case "${CASE_RAW}" in
 esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WORK="/work/b11209013/Kuang2008"
 
 if [[ "${CASE}" == "no_rad" ]] ; then
-  IN_DIR="${ROOT}/output/${CASE}"
+  IN_DIR="${WORK}/output/${CASE}"
   FIG_DIR="${ROOT}/figures/${CASE}"
-  POST_DIR="${ROOT}/output/${CASE}/post"
+  POST_DIR="${WORK}/output/${CASE}/post"
 
 else
-  IN_DIR="${ROOT}/output/${CASE}/rad_scaling=${RAD_SCALE}"
+  IN_DIR="${WORK}/output/${CASE}/rad_scaling=${RAD_SCALE}"
   FIG_DIR="${ROOT}/figures/${CASE}/rad_scaling=${RAD_SCALE}"
-  POST_DIR="${ROOT}/output/${CASE}/post/rad_scaling=${RAD_SCALE}"
+  POST_DIR="${WORK}/output/${CASE}/post/rad_scaling=${RAD_SCALE}"
 fi
-echo "IN_DIR = ${IN_DIR}"
+
 mkdir -p "${FIG_DIR}" "${POST_DIR}"
 
 VENV_ACT="${ROOT}/post/.venv/bin/activate"

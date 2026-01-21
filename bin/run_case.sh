@@ -19,7 +19,8 @@ case "${CASE_RAW}" in
 esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTDIR="${ROOT}/output/${CASE}"
+WORK="/work/b11209013/Kuang2008"
+OUTDIR="${WORK}/output/${CASE}"
 
 mkdir -p "${OUTDIR}"
 
