@@ -20,7 +20,12 @@ esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="/work/b11209013/Kuang2008"
-OUTDIR="${WORK}/output/${CASE}"
+
+if [[ "${CASE}" == "no_rad" ]] ; then
+  OUTDIR="${WORK}/output/${CASE}"
+else
+  OUTDIR="${WORK}/output/${CASE}/rad_scaling=${RAD_SCALE}"
+fi
 
 mkdir -p "${OUTDIR}"
 

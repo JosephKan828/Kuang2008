@@ -1,3 +1,10 @@
+# ============================================
+# Executing simulations
+# ============================================
+
+# ============================================
+# Load packages
+# ============================================
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 
@@ -10,9 +17,11 @@ using Plots
 
 import TOML
 
-const PROJECT_ROOT = "/home/b11209013/2025_Research/Kuang2008/"
-const WORK_ROOT    = "/work/b11209013/Kuang2008/"
+# ============================================
+# Helper functions
+# ============================================
 
+# functions for loading configuration
 function load_case_config(root::AbstractString, case::AbstractString)
 
     """
@@ -45,7 +54,7 @@ function main()
     # -------------------------------------------
     # Configuration
     # -------------------------------------------
-    cfg = load_case_config(PROJECT_ROOT, case)
+    cfg = load_case_config(root, case)
 
     @assert cfg !== nothing "No configuration for case = ", case
 
@@ -54,24 +63,24 @@ function main()
     comp_cfg = cfg["compute"]
     mod_cfg  = cfg["model"]    
 
-    DATAPATH = joinpath(PROJECT_ROOT, path_cfg["data_dir"])
+    DATAPATH = joinpath(path_cfg["root"], path_cfg["data_dir"])
 
     # -------------------------------------------
     # Compute setting
     # -------------------------------------------
     blas_threads = Int(comp_cfg["blas_threads"])
-    BLAS.set_num_threads(1)
+    BLAS.set_num_threads(blas_threads)
     
     # -------------------------------------------
     # Load data
     # -------------------------------------------
 
-    ρ0, p0, T0, z_bg = load_background(joinpath(DATAPATH, data_cfg["background"]))
-    G1, G2           = load_vertical_modes(joinpath(DATAPATH, data_cfg["vertical_mode"]))
-    x, z, t          = load_domain(joinpath(DATAPATH, data_cfg["domain"]))
-    k                = load_wavenumbers(joinpath(DATAPATH, data_cfg["inv_mat"]))
+    ρ0, p0, T0          = load_background(joinpath(DATAPATH, data_cfg["background"]))
+    G1, G2              = load_vertical_modes(joinpath(DATAPATH, data_cfg["vertical_mode"]))
+    x, z, t             = load_domain(joinpath(DATAPATH, data_cfg["domain"]))
+    λ, kcal, kdis, Finv = load_inv_mat(joinpath(DATAPATH, data_cfg["inv_mat"]))
 
-    Nt, Nv, Nk = length(t), Int(mod_cfg["nv"]), length(k)
+    Nt, Nv, Nk = length(t), Int(mod_cfg["nv"]), length(kcal)
 
     state_names = mod_cfg["state_names"]
 
@@ -82,16 +91,14 @@ function main()
     # -------------------------------------------
     init = zeros(ComplexF64, Nv, Nk)
 
-    scales = [10.0, 10.0, 10.0, 10.0, 0.1, 10] # scale of initial field
+    scales = [10.0, 10.0, 10.0, 10.0, 0.1, 100.0] # scale of initial field
 
     for i in 1:Nv
-        init[i, :] .= (2.0.*rand(ComplexF64, Nk) .- 1.0) .* (1.0 + 1.0im) .* scales[i]
+        init[i, :] .= rand(ComplexF64, Nk) .* scales[i]
     end
 
     state_vec = zeros(ComplexF64, Nt, Nv, Nk)
     params = default_params(case, rad_scaling) # setup parameter set
-
-    # dump( params ) # show parameters in this structure field
 
     println("Finish initial conditions.")
 
@@ -100,17 +107,17 @@ function main()
     # -------------------------------------------
     println("Running model for $case...")
 
-    @time integration!(state_vec, t, k, init; params=params, mode=:full)
+    @time integration!(state_vec, t, kcal, init; params=params, mode=:full)
 
     println("Finish running full model.")
 
     subfolder = case == "no_rad" ? case : joinpath(case, "rad_scaling=$rad_scaling_str")
-    outdir = joinpath(WORK_ROOT, "output", subfolder)
+    outdir = joinpath(path_cfg["work"], "output", subfolder)
     mkpath(outdir)
 
     println("Saving data to ", outdir)
 
-    save_state(joinpath(outdir, "state.h5"), state_vec, t, k, state_names)
+    save_state(joinpath(outdir, "state.h5"), state_vec, t, kcal, state_names)
 
     # -------------------------------------------
     # Save linear operator
@@ -118,11 +125,10 @@ function main()
     
     optrs = Array{ComplexF64}(undef, Nk, Nv, Nv)
 
-    @threads for j in eachindex( k )
-        optrs[ j, :, : ] = coeff_matrix( k[ j ]; param=params )
+    @threads for j in eachindex( kcal )
+        optrs[ j, :, : ] = coeff_matrix( kcal[ j ]; param=params )
     end
-    
-    save_optrs( joinpath( outdir, "optrs.h5" ), optrs, k )
+    save_optrs( joinpath( outdir, "optrs.h5" ), optrs, kcal )
 
 end
 

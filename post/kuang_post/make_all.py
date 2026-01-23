@@ -17,7 +17,7 @@ else:
     print( "Running in GLOBAL environment." )
 
 sys.path.append(
-    "/home/b11209013/2025_Research/Kuang2008/post/lib"
+    "/home/b11209013/Kuang2008/post/lib"
 )
 
 import Diagnostics #type: ignore
@@ -36,8 +36,6 @@ def parse_args():
                         help="Input directory containing simulation output")
     parser.add_argument("--fig-dir", required=True,
                         help="Directory to save figures")
-    parser.add_argument("--post-dir", required=True,
-                        help="Directory to save derived diagnostics")
 
     return parser.parse_args()
 
@@ -56,7 +54,6 @@ def main() -> None:
     case     = args.case
     in_dir   = Path(args.in_dir)
     fig_dir  = Path(args.fig_dir)
-    post_dir = Path(args.post_dir)
 
     # --------------------------------------------
     # Create directories
@@ -64,7 +61,6 @@ def main() -> None:
 
     # Create figure and post directories
     fig_dir.mkdir(parents=True, exist_ok=True)
-    post_dir.mkdir(parents=True, exist_ok=True)
 
     # --------------------------------------------
     # Load data
@@ -74,10 +70,9 @@ def main() -> None:
     with h5py.File(
         in_dir / "state.h5", "r"
     ) as f:
-        state: np.ndarray =  f.get( "state" )[ :, :, :300 ] # Shape: ( Nk, Nv, Nt )
-        time : np.ndarray =  f.get( "time" )[ :300 ]
-        var  : np.ndarray =  f.get( "variables" )[ ... ]
-        wnum : np.ndarray =  f.get( "wavenumber" )[ ... ]
+        state: np.ndarray =  np.array( f.get( "state" ) )[ :, :, :300 ] # Shape: ( Nk, Nv, Nt )
+        time : np.ndarray =  np.array( f.get( "time" ) )[ :300 ]
+        var  : np.ndarray =  np.array( f.get( "variables" ) )
 
     state = state.astype( np.complex64, copy=False )
     state: np.ndarray = state.transpose( 1, 0, 2 )
@@ -86,7 +81,7 @@ def main() -> None:
     with h5py.File(
         in_dir / "optrs.h5", "r"
     ) as f:
-        optrs: np.ndarray = f.get( "operators" )[ ... ] # shape: ( Nv, Nv, Nk )
+        optrs: np.ndarray = np.array( f.get( "operators" ) ) # shape: ( Nv, Nv, Nk )
 
     optrs: np.ndarray = optrs.astype( np.complex64, copy=False )
 
@@ -95,10 +90,19 @@ def main() -> None:
     "/home/b11209013/Kuang2008/data/inv_mat.h5",
         "r"
     ) as f:
-        x      : np.ndarray = f.get( "x" )[ ... ] # Shape: ( Nx, )
-        inv_mat: np.ndarray = f.get( "inverse matrix" )[ ... ] # shape: ( Nx, Nk )
+        λ   : np.ndarray = np.array( f.get( "lambda" ) )
+        kcal: np.ndarray = np.array( f.get( "wnum_cal" ) )
+        kdis: np.ndarray = np.array( f.get( "wnum_dis" ) )
+        inv_mat: np.ndarray = np.array( f.get( "F_inv" ) ) # shape: ( Nx, Nk )
 
     inv_mat: np.ndarray = inv_mat.astype( np.complex64, copy=False )
+
+    # load domain
+    with h5py.File(
+        "/home/b11209013/Kuang2008/data/domain.h5",
+        "r"
+    ) as f:
+        x: np.ndarray = np.array( f.get( "x" ) ) # shape: ( Nx, )
 
     print( "Finish Loading Data" )
 
@@ -108,22 +112,30 @@ def main() -> None:
 
     # Calculate growth rate
     σ: np.ndarray = Diagnostics.modal_growth_rate(
-        optrs, wnum
+        optrs, kcal
     ) # Shape: ( Nv, Nk )
 
     # Calculate phase speed
     c: np.ndarray = Diagnostics.phase_speed(
-        optrs, wnum
+        optrs, kcal
     ) # Shape: ( Nv, Nk )
 
     print( "Finish Calculating Diagnostics" )
 
     # ------------------------------------------------
+    # Identify maximum growth and phase speed
+    # ---------------------------------------------
+
+    max_idx : np.ndarray = np.argmax( σ, axis=0 )
+
+    σmax    : np.ndarray = np.take_along_axis( σ, max_idx[None, :], axis=0 )[0]
+    cmax    : np.ndarray = np.take_along_axis( c, max_idx[None, :], axis=0 )[0]
+
+    # ------------------------------------------------
     # Plot Diagnostics
     # ------------------------------------------------
-
-    # Plot.plot_growth_rate( σ   , wnum, fig_dir / "growth_rate.png" )
-    Plot.plot_diagnostics( σ, c, wnum, fig_dir / "growth_rate.png", fig_dir / "phase_speed.png" )
+    print( "Figure is saved in: ", fig_dir )
+    Plot.plot_diagnostics( σmax, cmax, c, kdis, fig_dir / "growth_rate.png", fig_dir / "phase_speed.png" )
 
     print( "Finish Plotting Diagnostics" )
 
@@ -155,7 +167,7 @@ def main() -> None:
     target_λ: np.float64 = np.float64( 8640.0 )
     target_k: np.float64 = 2 * np.pi * 4320.0/target_λ
 
-    kidx    : np.int64   = np.argmin( np.abs( target_k - wnum ) )
+    kidx    : np.int64   = np.argmin( np.abs( target_k - kcal ) )
 
     # constrain x domain of inverse matrix
     x_mask : np.ndarray = np.logical_and( x>=-4320000, x<=4320000 )
@@ -203,7 +215,7 @@ def main() -> None:
         np.linspace( 0, 14000, w.shape[ 0 ] ),
         J, T, w, "RdBu_r", None, Tlevel, wlevel,
         "Convective-heating Only",
-        fig_dir / "profile_evo.mp4")
+        fig_dir / "profile_evo.mp4", skip=5)
 
     print( "Finish plotting animation" )
 

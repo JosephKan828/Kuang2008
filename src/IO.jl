@@ -1,15 +1,14 @@
 module IO
 
 using HDF5
-export load_background, load_vertical_modes, load_domain, load_wavenumbers, save_state, save_optrs
+export load_background, load_vertical_modes, load_domain, load_inv_mat, save_state, save_optrs
 
 function load_background(path::String)
     h5open(path, "r") do f
-        ρ0 = read(f, "ρ0")
-        p0 = read(f, "p0")
-        T0 = read(f, "T0")
-        z  = read(f, "z")
-        return ρ0, p0, T0, z
+        ρ0 = read(f, "rho_bar")
+        p0 = read(f, "pbar")
+        T0 = read(f, "Tbar")
+        return ρ0, p0, T0
     end
 end
 
@@ -30,10 +29,13 @@ function load_domain(path::String)
     end
 end
 
-function load_wavenumbers(path::String)
+function load_inv_mat(path::String)
     h5open(path, "r") do f
-        k = read(f, "wavenumber")
-        return k
+        λ = read(f, "lambda")
+        kcal = read(f, "wnum_cal")
+        kdis = read(f, "wnum_dis")
+        Finv = read(f, "F_inv")
+        return λ, kcal, kdis, Finv
     end
 end
 

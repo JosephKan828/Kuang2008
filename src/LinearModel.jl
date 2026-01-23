@@ -85,13 +85,13 @@ function coeff_matrix(kn::Float64;
         # 4. Linear operator assembly
         # --------------------------------------------------
         mat = ComplexF64[
-            # (T₁, T₂)
-            -ϵ        0.0       (c1*kn)^2                 0.0        0.0              0.0;
-            0.0      -ϵ          0.0        (c2*kn)^2                 0.0              0.0;
+            # (w_1, w_2)
+            -ϵ        0.0       (c1*kn)^2  0.0        0.0              0.0;
+            0.0      -ϵ         0.0        (c2*kn)^2  0.0              0.0;
         
-            # (w₁, w₂)
-            Rw11-1.0  Rw21   RT11 - 1.5*rq   RT21   rq + Rq1    1.0 + r0;
-            Rw12      Rw22-1.0 RT12 + 1.5*rq RT22  -rq + Rq2   1.0 - r0;
+            # (T_1, T_2)
+            Rw11-1.0  Rw21     RT11-1.5*rq RT21   rq+Rq1   1.0+r0;
+            Rw12      Rw22-1.0 RT12+1.5*rq RT22  -rq+Rq2   1.0-r0;
         
             # (q)
             α         β         γ            δ         ζ                 η;

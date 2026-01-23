@@ -35,8 +35,8 @@ def phase_speed(
     for j in range( Nk ):
         eigvals, eigvecs = np.linalg.eig( optrs[ :, :, j ].T )
 
-        c = -np.imag( eigvals ) / k[ j ] * ( length_scale / time_scale )
-
+        # c = -np.imag( eigvals ) / k[ j ] * ( length_scale / time_scale )
+        c = np.imag( eigvals ) / k[ j ] * ( length_scale / time_scale )
         speed[ :, j ] = c
 
     return speed

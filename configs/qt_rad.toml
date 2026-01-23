@@ -3,11 +3,11 @@ name = "qt_rad"
 description = "moisture and temperature case"
 
 [compute]
-blas_threads = 12
+blas_threads = 1
 
 [paths]
-root = "/home/b11209013/2025_Research/Kuang2008/"
-work = "/work/b11209013/2025_Research/Kuang2008/"
+root = "/home/b11209013/Kuang2008/"
+work = "/work/b11209013/Kuang2008/"
 data_dir = "data/"
 output_dir = "output/"
 figures_dir = "figures/"

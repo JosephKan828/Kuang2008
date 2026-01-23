@@ -12,9 +12,10 @@ using .Simulation
 using .IO
 using .Diagnostics
 
+# Export functions in pre-defined modules
 export ModelParams, default_params, coeff_matrix
 export integration!, run_full_model!
-export load_background, load_vertical_modes, load_domain, load_wavenumbers, save_state, save_optrs
+export load_background, load_vertical_modes, load_domain, load_inv_mat, save_state, save_optrs
 
 # New exports for diagnostics
 export diagnose_growth_phase, save_growth_phase, run_diagnostics

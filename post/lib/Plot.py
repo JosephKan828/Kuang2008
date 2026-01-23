@@ -6,79 +6,27 @@ matplotlib.use("Agg")  # Use non-interactive backend
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 
-def plot_growth_rate(
-    growth_rate: np.ndarray,
-    wnum       : np.ndarray,
-    path
-) -> None:
-
-    # Calculate wavelength
-    λ: np.ndarray = 2.0 * np.pi * 4320.0 / wnum
-
-    # Find most unstable mode
-    max_idx: np.ndarray = np.argmax( growth_rate, axis=0 )
-    # max_σ  : np.ndarray = np.asarray([
-    #     growth_rate[max_idx[i], i]
-    #     for i in range(wnum.size)
-    # ])
-
-    max_σ: np.ndarray = np.take_along_axis(growth_rate, max_idx[None, :], axis=0)[0]
-
-    # Plot  
-    x = 40000 / λ
-
-    fig = plt.figure( figsize=( 10.5, 6.2 ) )
-
-    plt.scatter(
-        x, max_σ,
-        linewidth=2.5, color="black"
-    )
-    plt.gca().spines[ "top" ].set_visible( False )
-    plt.gca().spines[ "right" ].set_visible( False )
-
-    plt.xlabel( "Zonal Wavenumber", fontsize=18 )
-    plt.ylabel( r"Growth Rate [ day$^{-1}$ ]", fontsize=18 )
-    plt.xticks( np.linspace(0, 30, 7), fontsize=16 )
-    plt.yticks( fontsize=16 )
-    plt.xlim( 0, 30 )
-    plt.ylim( 0, None )
-
-    plt.savefig( path, dpi=600, bbox_inches="tight" )
-    plt.close()
-
 def plot_diagnostics(
-    growth_rate : np.ndarray,
+    max_σ : np.ndarray,
+    max_c : np.ndarray,
     phase_speed : np.ndarray,
     wnum        : np.ndarray,
     path_growth ,
     path_speed
 ) -> None:
 
-    # Calculate wavelength
-    λ: np.ndarray = 2.0 * np.pi * 4320.0 / wnum
-
-    # Find most unstable mode
-    max_idx: np.ndarray = np.argmax( growth_rate, axis=0 )
-    # max_c  : np.ndarray = np.asarray([
-    #     phase_speed[max_idx[i], i]
-    #     for i in range(wnum.size)
-    # ])
-    max_σ: np.ndarray = np.take_along_axis(growth_rate, max_idx[None, :], axis=0)[0]
-    max_c: np.ndarray = np.take_along_axis(phase_speed, max_idx[None, :], axis=0)[0]
-
-    # Plot  
-    x = 40000 / λ
+    # Plot
 
     fig = plt.figure( figsize=( 10.5, 6.2 ) )
 
     for j in range( phase_speed.shape[0] ):
         plt.scatter(
-            x, phase_speed[ j, : ],
+            wnum, phase_speed[ j, : ],
             s=3, c="blue", alpha=0.3
         )
 
     plt.scatter(
-        x, max_c,
+        wnum, max_c,
         s=6, c="white", edgecolor="black", 
     )
     plt.gca().spines[ "top" ].set_visible( False )
@@ -98,7 +46,7 @@ def plot_diagnostics(
     fig = plt.figure( figsize=( 10.5, 6.2 ) )
 
     plt.scatter(
-        x, max_σ,
+        wnum, max_σ,
         linewidth=2.5, color="black"
     )
     plt.gca().spines[ "top" ].set_visible( False )
@@ -110,6 +58,10 @@ def plot_diagnostics(
     plt.yticks( fontsize=16 )
     plt.xlim( 0, 30 )
     plt.ylim( 0, None )
+    plt.text( 
+        18, 0.8 * np.max( max_σ ),
+        f"Max Growth Rate : {np.max( max_σ ):0.3f} day$^{{-1}}$ \nat Wavenumber : {wnum[ np.argmax( max_σ ) ]:0.2f}",
+        fontsize=16 )
 
     plt.savefig( path_growth, dpi=600, bbox_inches="tight" )
     plt.close()
@@ -128,17 +80,20 @@ def plot_animation(
     path,
     frames: int = 300,
     fps: int = 40,
-    draw_contours: bool = True
+    skip: int = 1
 ) -> None:
     """
     Scientific animation with full redraw per frame.
     No use of contour collections or artist mutation.
     """
 
+    x = x[::skip]
+    z = z[::skip]
+
     # ---- Cast to real ----
-    J = np.real(J)
-    T = np.real(T)
-    w = np.real(w)
+    J = np.real(J)[::skip, ::skip, :]
+    T = np.real(T)[::skip, ::skip, :]
+    w = np.real(w)[::skip, ::skip, :]
 
     nz, nx, nt = J.shape
 
@@ -164,6 +119,7 @@ def plot_animation(
     ax.set_ylabel("Z [km]", fontsize=18)
     ax.minorticks_on()
     ax.set_aspect("auto")
+
 # ---- Create pcolormesh ONCE ----
     pcm = ax.pcolormesh(
         x, z, J[:, :, 0],
@@ -178,34 +134,13 @@ def plot_animation(
     cont_T = None
     cont_w = None
 
-    # Precompute which array updater pcolormesh uses
-    # QuadMesh stores flattened array of size nz*nx.
-    def _set_pcm(field2d: np.ndarray) -> None:
-        pcm.set_array(field2d.ravel())
+    curr_ax = ax
 
     def update(i: int):
         nonlocal cont_T, cont_w
 
 
         pcm.set_array(J[:, :, i].ravel())
-        # _set_pcm(J[:, :, i])
-
-        # if draw_contours:
-        #     # remove previous contours (much cheaper than ax.clear())
-        #     if cont_T is not None:
-        #         for artist in cont_T.collections: # type: ignore
-        #             artist.remove()
-        #     if cont_w is not None:
-        #         for artist in cont_w.collections: # type: ignore
-        #             artist.remove()
-
-        #     cont_T = ax.contour(x, z, T[:, :, i], levels=T_level, colors="k", linewidths=1.8)
-        #     cont_w = ax.contour(x, z, w[:, :, i], levels=w_level, colors="seagreen", linewidths=1.8)
-
-        # ax.set_title(f"{title}  |  frame {i+1}/{nt}", fontsize=20)
-
-        # # blit=True works well if draw_contours=False (otherwise contours recreate artists each frame)
-        # return (pcm,)
     
         # Remove old contours (NO .collections usage)
         if cont_T is not None:
@@ -214,8 +149,8 @@ def plot_animation(
             cont_w.remove()
 
         # Draw new contours
-        cont_T = ax.contour(x, z, T[:, :, i], levels=T_level, colors="k", linewidths=2, zorder=2)
-        cont_w = ax.contour(x, z, w[:, :, i], levels=w_level, colors="seagreen", linewidths=2, zorder=2)
+        cont_T = curr_ax.contour(x, z, T[:, :, i], levels=T_level, colors="k", linewidths=2, zorder=2)
+        cont_w = curr_ax.contour(x, z, w[:, :, i], levels=w_level, colors="seagreen", linewidths=2, zorder=2)
 
         return (pcm,)  # keep blit simple; contours are re-created
 
@@ -227,7 +162,7 @@ def plot_animation(
         fps=fps,
         bitrate=5_000,
         codec="libx264",
-        extra_args=["-pix_fmt", "yuv420p", "-preset", "veryfast",  "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",]
+        extra_args=["-pix_fmt", "yuv420p", "-preset", "ultrafast",  "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",]
     )
     ani.save(path, writer=writer, dpi=150)  # dpi=150 usually enough for videos
 
