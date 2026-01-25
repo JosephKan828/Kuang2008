@@ -111,13 +111,33 @@ function main()
 
     println("Finish running full model.")
 
+    # -------------------------------------------
+    # Convert data into necessary quantities
+    # -------------------------------------------
+
+    state_new :: Array{ComplexF64} = zeros(ComplexF64, Nt, Nv+1, Nk)
+
+    L :: Array{ComplexF64} = state_vec[:, end, :]
+    U :: Array{ComplexF64} = L + 0.7*(state_vec[:, end-1, :] - state_vec[:, 3, :])
+
+    J1 :: Array{ComplexF64} = L + U
+    J2 :: Array{ComplexF64} = L - U
+
+    state_new[:, 1, :] = state_vec[:, 1, :]
+    state_new[:, 2, :] = state_vec[:, 2, :]
+    state_new[:, 3, :] = state_vec[:, 3, :]
+    state_new[:, 4, :] = state_vec[:, 4, :]
+    state_new[:, 5, :] = state_vec[:, 5, :]
+    state_new[:, 6, :] = J1
+    state_new[:, 7, :] = J2
+
     subfolder = case == "no_rad" ? case : joinpath(case, "rad_scaling=$rad_scaling_str")
     outdir = joinpath(path_cfg["work"], "output", subfolder)
     mkpath(outdir)
 
     println("Saving data to ", outdir)
 
-    save_state(joinpath(outdir, "state.h5"), state_vec, t, kcal, state_names)
+    save_state(joinpath(outdir, "state.h5"), state_new, t, kcal, state_names)
 
     # -------------------------------------------
     # Save linear operator

@@ -1,0 +1,25 @@
+[case]
+description = "{CASEDESC}" # case description
+name = "{CASENAME}" # case name (e.g., no_rad, qt_rad, cld_rad)  
+
+[compute]
+blas_threads = "{NUM_THREADS}" # number of BLAS threads, 1 by default
+
+[paths]
+data_dir = "{DATA}" # sub directory for data such as inv_mat.h5, default is "data/"
+figures_dir = "{FIGURES}" # sub directory for figures, default is "figures/"
+output_dir = "{OUTPUT}" # sub directory for output, default is "output/"
+root = "{ROOT}" # root directory for the project
+work = "{WORK}" # work directory for the project
+
+[data_files]
+background = "{BACKGROUND}" # file for thermodynamic background profile
+domain = "{DOMAIN}" # file for domain setting
+inv_mat = "{INVMAT}" # file for inverse Fourier matrix
+vertical_mode = "{VERTICAL_MODE}" # file for vertical modes
+
+[model]
+mode = "{full|oneway}" # equation modes
+nv = "{NV}" # number for vertical modes, 6 by default
+params_preset = "{params}" # Must be the same as case name
+state_names = ["w1", "w2", "T1", "T2", "q", "L"]
