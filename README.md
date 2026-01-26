@@ -95,7 +95,7 @@ In the above command, `no_rad` is the case name, and `0.001` is the radiative fe
 
 ```bash
 make post CASE=no_rad
-``` 
+```
 
 ### Version Log
 
