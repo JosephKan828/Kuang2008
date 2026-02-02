@@ -37,6 +37,9 @@ def parse_args():
         "--in-dir", required=True, help="Input directory containing simulation output"
     )
     parser.add_argument("--fig-dir", required=True, help="Directory to save figures")
+    parser.add_argument(
+        "--out-dir", required=True, help="Directory to save post-processing"
+    )
 
     return parser.parse_args()
 
@@ -57,6 +60,7 @@ def main() -> None:
     case = args.case
     in_dir = Path(args.in_dir)
     fig_dir = Path(args.fig_dir)
+    out_dir = Path(args.out_dir)
 
     # --------------------------------------------
     # Create directories
@@ -170,6 +174,10 @@ def main() -> None:
     profile: np.ndarray = np.einsum(
         "vz,vxt->vzxt", basis_v, FourierBasis * pcs, optimize=True
     )
+
+    # Save profile
+    with h5py.File(out_dir / "profile.h5", "w") as f:
+        f.create_dataset("profile", data=profile)
 
     print("Finish reconstructing profiles")
 
