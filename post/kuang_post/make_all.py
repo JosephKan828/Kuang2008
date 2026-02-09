@@ -73,10 +73,8 @@ def main() -> None:
 
     # Load state matrix
     with h5py.File(in_dir / "state.h5", "r") as f:
-        state: np.ndarray = np.array(f.get("state"))[
-            :, :, :300
-        ]  # Shape: ( Nk, Nv, Nt )
-        time: np.ndarray = np.array(f.get("time"))[:300]
+        state: np.ndarray = np.array(f.get("state"))[...]  # Shape: ( Nk, Nv, Nt )
+        time: np.ndarray = np.array(f.get("time"))[...]
         var: np.ndarray = np.array(f.get("variables"))
 
     state = state.astype(np.complex64, copy=False)
@@ -155,7 +153,7 @@ def main() -> None:
 
     # Choose wavelength and wavenumber
     target_λ: np.float64 = np.float64(8640.0)
-    target_k: np.float64 = 2 * np.pi * 4320.0 / target_λ
+    target_k: np.float64 = np.float64(2 * np.pi * 4320.0 / target_λ)
 
     kidx: np.int64 = np.argmin(np.abs(target_k - kcal))
 
@@ -183,25 +181,9 @@ def main() -> None:
     # --------------------------------------------
 
     # combining data
-    w: np.ndarray = profile[0] + profile[1]
+    w: np.ndarray = (profile[0] + profile[1]) / 86400  # Convert unit from m/day to m/s
     T: np.ndarray = profile[2] + profile[3]
     J: np.ndarray = profile[4] + profile[5]
-
-    # Design levels
-
-    Tmax: np.float64 = np.nanmax(np.abs(T)) * 0.8 // 0.0005 * 0.0005
-    wmax: np.float64 = np.nanmax(np.abs(w)) * 0.8 // 0.01 * 0.01
-    Jmax: np.float64 = np.nanmax(np.abs(J)) * 0.8 // 1
-
-    print("Maximum T", np.nanmax(np.abs(T)))
-
-    Tlevel: np.ndarray = np.linspace(-Tmax, Tmax, 21)
-    wlevel: np.ndarray = np.linspace(-wmax, wmax, 21)
-    Jlevel: np.ndarray = np.linspace(-Jmax, Jmax, 21)
-
-    Tlevel = Tlevel[np.abs(Tlevel) >= 1e-5]
-    wlevel = wlevel[np.abs(wlevel) >= 1e-5]
-    Jlevel = Jlevel[np.abs(Jlevel) >= 1e-5]
 
     # Plot animation
 
@@ -213,9 +195,6 @@ def main() -> None:
         w,
         "RdBu_r",
         None,
-        Tlevel,
-        wlevel,
-        "Convective-heating Only",
         fig_dir / "profile_evo.mp4",
         skip=5,
     )
