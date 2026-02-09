@@ -88,11 +88,8 @@ def plot_animation(
     w,
     cmap,
     J_level,
-    T_level,
-    w_level,
-    title,
     path,
-    frames: int = 300,
+    frames: int = 600,
     fps: int = 40,
     skip: int = 1,
 ) -> None:
@@ -158,16 +155,28 @@ def plot_animation(
         # Remove old contours (NO .collections usage)
         if cont_T is not None:
             cont_T.remove()
+
         if cont_w is not None:
             cont_w.remove()
 
         # Draw new contours
         cont_T = curr_ax.contour(
-            x, z, T[:, :, i], levels=T_level, colors="k", linewidths=2, zorder=2
+            x, z, T[:, :, i], levels=7, colors="k", linewidths=2, zorder=2
         )
+
+        t_manual = [l for l in cont_T.levels if abs(l) > 1e-5]
+        if t_manual:
+            curr_ax.clabel(
+                cont_T, levels=t_manual, inline=True, fontsize=10, fmt="%.1f"
+            )
         cont_w = curr_ax.contour(
-            x, z, w[:, :, i], levels=w_level, colors="seagreen", linewidths=2, zorder=2
+            x, z, w[:, :, i], levels=7, colors="seagreen", linewidths=2, zorder=2
         )
+        w_manual = [l for l in cont_w.levels if abs(l) > 1e-5]
+        if w_manual:
+            curr_ax.clabel(
+                cont_w, levels=w_manual, inline=True, fontsize=10, fmt="%.1f"
+            )
 
         return (pcm,)  # keep blit simple; contours are re-created
 
@@ -177,17 +186,19 @@ def plot_animation(
     # Encoding settings also affect time a lot.
     writer = FFMpegWriter(
         fps=fps,
-        bitrate=5_000,
+        bitrate=10_000,
         codec="libx264",
         extra_args=[
             "-pix_fmt",
             "yuv420p",
             "-preset",
-            "ultrafast",
+            "medium",
+            "-crf",
+            "18",
             "-vf",
             "scale=trunc(iw/2)*2:trunc(ih/2)*2",
         ],
     )
-    ani.save(path, writer=writer, dpi=300)  # dpi=150 usually enough for videos
+    ani.save(path, writer=writer, dpi=200)  # dpi=150 usually enough for videos
 
     plt.close(fig)

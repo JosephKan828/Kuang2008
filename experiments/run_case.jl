@@ -45,9 +45,9 @@ function main()
     # -------------------------------------------
     @assert length(ARGS) <= 3 "Usage: julia run_case.jl [case] [rad_scaling]"
 
-    case            = ARGS[1] # refer to specific case
+    case = ARGS[1] # refer to specific case
     rad_scaling_str = ARGS[2]
-    rad_scaling     = parse(Float64, rad_scaling_str)  # radiation scaling factor
+    rad_scaling = parse(Float64, rad_scaling_str)  # radiation scaling factor
 
     root = abspath(joinpath(@__DIR__, ".."))      # root directory
 
@@ -61,7 +61,7 @@ function main()
     data_cfg = cfg["data_files"]
     path_cfg = cfg["paths"]
     comp_cfg = cfg["compute"]
-    mod_cfg  = cfg["model"]    
+    mod_cfg = cfg["model"]
 
     DATAPATH = joinpath(path_cfg["root"], path_cfg["data_dir"])
 
@@ -70,14 +70,14 @@ function main()
     # -------------------------------------------
     blas_threads = Int(comp_cfg["blas_threads"])
     BLAS.set_num_threads(blas_threads)
-    
+
     # -------------------------------------------
     # Load data
     # -------------------------------------------
 
-    ρ0, p0, T0          = load_background(joinpath(DATAPATH, data_cfg["background"]))
-    G1, G2              = load_vertical_modes(joinpath(DATAPATH, data_cfg["vertical_mode"]))
-    x, z, t             = load_domain(joinpath(DATAPATH, data_cfg["domain"]))
+    ρ0, p0, T0 = load_background(joinpath(DATAPATH, data_cfg["background"]))
+    G1, G2 = load_vertical_modes(joinpath(DATAPATH, data_cfg["vertical_mode"]))
+    x, z, t = load_domain(joinpath(DATAPATH, data_cfg["domain"]))
     λ, kcal, kdis, Finv = load_inv_mat(joinpath(DATAPATH, data_cfg["inv_mat"]))
 
     Nt, Nv, Nk = length(t), Int(mod_cfg["nv"]), length(kcal)
@@ -91,10 +91,11 @@ function main()
     # -------------------------------------------
     init = zeros(ComplexF64, Nv, Nk)
 
-    scales = [10.0, 10.0, 10.0, 10.0, 0.1, 100.0] # scale of initial field
+    # scales = [10.0, 10.0, 10.0, 10.0, 0.1, 100.0] # scale of initial field
+    scales = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
     for i in 1:Nv
-        init[i, :] .= rand(ComplexF64, Nk) .* scales[i]
+        init[i, :] .= (2.0 .* rand(ComplexF64, Nk) .- 1.0) .* scales[i]
     end
 
     state_vec = zeros(ComplexF64, Nt, Nv, Nk)
@@ -115,13 +116,13 @@ function main()
     # Convert data into necessary quantities
     # -------------------------------------------
 
-    state_new :: Array{ComplexF64} = zeros(ComplexF64, Nt, Nv+1, Nk)
+    state_new::Array{ComplexF64} = zeros(ComplexF64, Nt, Nv + 1, Nk)
 
-    L :: Array{ComplexF64} = state_vec[:, end, :]
-    U :: Array{ComplexF64} = L + 0.7*(state_vec[:, end-1, :] - state_vec[:, 3, :])
+    L::Array{ComplexF64} = state_vec[:, end, :]
+    U::Array{ComplexF64} = L + 0.7 * (state_vec[:, end-1, :] - state_vec[:, 3, :])
 
-    J1 :: Array{ComplexF64} = L + U
-    J2 :: Array{ComplexF64} = L - U
+    J1::Array{ComplexF64} = L + U
+    J2::Array{ComplexF64} = L - U
 
     state_new[:, 1, :] = state_vec[:, 1, :]
     state_new[:, 2, :] = state_vec[:, 2, :]
@@ -142,13 +143,13 @@ function main()
     # -------------------------------------------
     # Save linear operator
     # -------------------------------------------
-    
+
     optrs = Array{ComplexF64}(undef, Nk, Nv, Nv)
 
-    @threads for j in eachindex( kcal )
-        optrs[ j, :, : ] = coeff_matrix( kcal[ j ]; param=params )
+    @threads for j in eachindex(kcal)
+        optrs[j, :, :] = coeff_matrix(kcal[j]; param=params)
     end
-    save_optrs( joinpath( outdir, "optrs.h5" ), optrs, kcal )
+    save_optrs(joinpath(outdir, "optrs.h5"), optrs, kcal)
 
 end
 
